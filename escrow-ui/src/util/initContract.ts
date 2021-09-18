@@ -1,20 +1,13 @@
 import { AccountLayout, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Account, Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction } from "@solana/web3.js";
 import BN from "bn.js";
-import { tokenAPubKeyString, tokenBPubKeyString, tokenCPubKeyString, tokenAmount, tokenAUserAcc, tokenBUserAcc, tokenCUserAcc, accPrivKey } from "./const";
+import { tokenAPubKeyString, tokenBPubKeyString, tokenCPubKeyString, tokenAmount, tokenAUserAcc, tokenBUserAcc, tokenCUserAcc, accPrivKeyByteArr } from "./const";
 import { ESCROW_ACCOUNT_DATA_LAYOUT, EscrowLayout } from "./layout";
 
 const connection = new Connection("https://api.devnet.solana.com", 'singleGossip');
 
 export const initContract = async (
-
     programId: string, // program ID of the contract
-
-    // initializerXTokenAccountPubkeyString: string,
-    // amountXTokensToSendToEscrow: number,
-    // initializerReceivingTokenAccountPubkeyString: string,
-    // expectedAmount: number,
-    // escrowProgramIdString: string
 ) => {
 
 
@@ -29,7 +22,7 @@ export const initContract = async (
     const tokenC = new PublicKey(tokenCPubKeyString)
     const tokenCUser = new PublicKey(tokenCUserAcc)
 
-    const privateKeyDecoded = accPrivKey.split(',').map(s => parseInt(s));
+    const privateKeyDecoded = accPrivKeyByteArr.split(',').map(s => parseInt(s));
     const initializerAccount = new Account(privateKeyDecoded);
 
     // --------------

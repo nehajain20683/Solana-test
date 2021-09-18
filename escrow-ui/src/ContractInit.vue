@@ -41,11 +41,11 @@
         <div>{{ contractState.tokenAOfContract ?? '--' }}</div>
       </div>
       <div class="mb-1">
-        Token A account for Contract:
+        Token B account for Contract:
         <div>{{ contractState.tokenBOfContract ?? '--' }}</div>
       </div>
       <div class="mb-1">
-        Token A account for Contract:
+        Token C account for Contract:
         <div>{{ contractState.tokenCOfContract ?? '--' }}</div>
       </div>
     </div>
@@ -95,6 +95,7 @@ export default defineComponent({
         contractState.tokenBOfContract = contractTokenB
         contractState.tokenCOfContract = contractTokenC
       } catch (err) {
+        console.log("ERROR", err)
         alert(err.message)
       }
     }
