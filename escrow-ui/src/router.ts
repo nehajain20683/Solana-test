@@ -4,10 +4,16 @@ const Alice = () => import("./Alice.vue")
 const Bob = () => import("./Bob.vue")
 const Contract = () => import("./ContractInit.vue")
 const Transfer = () => import("./TransferToken.vue")
+const Swap = () => import("./ContractSwap.vue")
 
 export default createRouter({
-    history: createWebHashHistory(),
+    history: createWebHashHistory('/'),
     routes: [
+        {
+            name: "Swap",
+            path: "/swap",
+            component: Swap
+        },
         {
             name: "Contract",
             path: "/contract",
@@ -15,7 +21,7 @@ export default createRouter({
         },
         {
             name: "Transfer Token",
-            path: "/",
+            path: "/transfer",
             component: Transfer
         },
         {

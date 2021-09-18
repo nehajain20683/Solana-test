@@ -31,7 +31,101 @@ impl Processor {
                 msg!("Instruction: Exchange");
                 Self::process_exchange(accounts, amount, program_id)
             }
+            EscrowInstruction::SwapTokens { amountA } => {
+                // EscrowInstruction::SwapTokens { amountA, amountB, amountC  } => {
+                msg!("Instruction: SwapToken");
+                // Self::process_token_swap(accounts, amountA, amountB, amountC, program_id)
+                Self::process_token_swap(accounts, amountA, program_id)
+            }
+            EscrowInstruction::InitSwapContract { } => {
+                // EscrowInstruction::SwapTokens { amountA, amountB, amountC  } => {
+                msg!("Instruction: init_swap");
+                // Self::process_token_swap(accounts, amountA, amountB, amountC, program_id)
+                Self::process_init_swap(accounts, program_id)
+            }
         }
+    }
+
+    fn process_init_swap(
+        accounts: &[AccountInfo],
+        program_id: &Pubkey
+    ) -> ProgramResult {
+
+        let account_info_iter = &mut accounts.iter();
+        let initializer = next_account_info(account_info_iter)?;
+
+        if !initializer.is_signer {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+        
+        let token_a_temp_account = next_account_info(account_info_iter)?;
+        let token_b_temp_account = next_account_info(account_info_iter)?;
+        let token_c_temp_account = next_account_info(account_info_iter)?;
+        let swap_contract_account = next_account_info(account_info_iter)?;
+        let rent = next_account_info(account_info_iter)?;
+        
+        let (pda, _bump_seed) = Pubkey::find_program_address(&[b"token_swap_pda"], program_id);
+
+        let token_program = next_account_info(account_info_iter)?;
+        let a_owner_change_ix = spl_token::instruction::set_authority(
+            token_program.key,                                   //token_id
+            token_a_temp_account.key, // account whose authority needs to change
+            Some(&pda),             // new authority
+            spl_token::instruction::AuthorityType::AccountOwner, // type of authority change
+            initializer.key,        // current owner
+            &[&initializer.key],    // public kets signing the CPI
+        )?;
+
+        msg!("Calling the token program to transfer token A account ownership...");
+        invoke(
+            &a_owner_change_ix,
+            &[
+                token_a_temp_account.clone(),
+                initializer.clone(),
+                token_program.clone(),
+            ],
+        )?;
+
+        let b_owner_change_ix = spl_token::instruction::set_authority(
+            token_program.key,                                   //token_id
+            token_b_temp_account.key, // account whose authority needs to change
+            Some(&pda),             // new authority
+            spl_token::instruction::AuthorityType::AccountOwner, // type of authority change
+            initializer.key,        // current owner
+            &[&initializer.key],    // public kets signing the CPI
+        )?;
+
+        msg!("Calling the token program to transfer token B account ownership...");
+        invoke(
+            &b_owner_change_ix,
+            &[
+                token_b_temp_account.clone(),
+                initializer.clone(),
+                token_program.clone(),
+            ],
+        )?;
+
+        let c_owner_change_ix = spl_token::instruction::set_authority(
+            token_program.key,                                   //token_id
+            token_c_temp_account.key, // account whose authority needs to change
+            Some(&pda),             // new authority
+            spl_token::instruction::AuthorityType::AccountOwner, // type of authority change
+            initializer.key,        // current owner
+            &[&initializer.key],    // public kets signing the CPI
+        )?;
+
+        msg!("Calling the token program to transfer token C account ownership...");
+        invoke(
+            &c_owner_change_ix,
+            &[
+                token_c_temp_account.clone(),
+                initializer.clone(),
+                token_program.clone(),
+            ],
+        )?;
+
+        Ok(())
+
     }
 
     fn process_init_escrow(
@@ -45,6 +139,13 @@ impl Processor {
         if !initializer.is_signer {
             return Err(ProgramError::MissingRequiredSignature);
         }
+
+        // let token = next_account_info(account_info_iter)?;
+
+        // let (pda, _bump_seed) = Pubkey::find_program_address(&[b"escrow"], program_id);
+        
+
+
 
         let temp_token_account = next_account_info(account_info_iter)?;
 
@@ -200,6 +301,89 @@ impl Processor {
             .ok_or(EscrowError::AmountOverflow)?;
         **escrow_account.lamports.borrow_mut() = 0;
         *escrow_account.data.borrow_mut() = &mut [];
+
+        Ok(())
+    }
+
+    fn process_token_swap(
+        accounts: &[AccountInfo],
+        amount_expected_by_taker_for_A: u64,
+        // amount_expected_by_taker_for_B: u64,
+        // amount_expected_by_taker_for_C: u64,
+        program_id: &Pubkey,
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let taker = next_account_info(account_info_iter)?;
+
+        if !taker.is_signer {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+
+        let taker_token_A_acc = next_account_info(account_info_iter)?;
+        // let taker_token_B_acc = next_account_info(account_info_iter)?;
+        // let taker_token_C_acc = next_account_info(account_info_iter)?;
+
+        let contract_token_A_acc = next_account_info(account_info_iter)?;
+        // let contract_token_B_acc = next_account_info(account_info_iter)?;
+        // let contract_token_C_acc = next_account_info(account_info_iter)?;
+
+        let token_program = next_account_info(account_info_iter)?;
+        let contractId = next_account_info(account_info_iter)?;
+
+        let transfer_A_to_initializer_ix = spl_token::instruction::transfer(
+            token_program.key,
+            contract_token_A_acc.key,
+            taker_token_A_acc.key,
+            contractId.key,
+            &[&contractId.key],
+            amount_expected_by_taker_for_A,
+        )?;
+        invoke(
+            &transfer_A_to_initializer_ix,
+            &[
+                contractId.clone(),
+                contract_token_A_acc.clone(),
+                taker_token_A_acc.clone(),
+                token_program.clone(),
+                taker.clone()
+            ],
+        )?;
+
+        // let transfer_B_to_initializer_ix = spl_token::instruction::transfer(
+        //     token_program.key,
+        //     contract_token_B_acc.key,
+        //     taker_token_B_acc.key,
+        //     program_id.key,
+        //     &[&program_id.key],
+        //     amount_expected_by_taker_for_B,
+        // )?;
+        // invoke(
+        //     &transfer_B_to_initializer_ix,
+        //     &[
+        //         program_id.clone(),
+        //         contract_token_B_acc.clone(),
+        //         taker_token_B_acc.clone(),
+        //         token_program.clone(),
+        //     ],
+        // )?;
+
+        // let transfer_C_to_initializer_ix = spl_token::instruction::transfer(
+        //     token_program.key,
+        //     contract_token_C_acc.key,
+        //     taker_token_C_acc.key,
+        //     program_id.key,
+        //     &[&program_id.key],
+        //     amount_expected_by_taker_for_C,
+        // )?;
+        // invoke(
+        //     &transfer_C_to_initializer_ix,
+        //     &[
+        //         program_id.clone(),
+        //         contract_token_C_acc.clone(),
+        //         taker_token_C_acc.clone(),
+        //         token_program.clone(),
+        //     ],
+        // )?;
 
         Ok(())
     }

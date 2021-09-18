@@ -35,6 +35,43 @@ pub enum EscrowInstruction {
         /// the amount the taker expects to be paid in the other token, as a u64 because that's the max possible supply of a token
         amount: u64,
     },
+
+    // MY FUNCTION -------------------------------------------------------
+    /// Accepts a trade
+    ///
+    ///
+    /// Accounts expected:
+    ///
+    /// 0. `[signer]` The account of the person taking the trade
+    /// 1. `[writable]` The taker's token A account
+    /// 2. `[writable]` The taker's token B account -- no for test
+    /// 3. `[writable]` The taker's token C account -- no for test
+    /// 4. `[writable]` Contract token A account (probably pool)
+    /// 4. `[writable]` Contract token B account (probably pool) -- no for test
+    /// 4. `[writable]` Contract token C account (probably pool) -- no for test
+    /// 7. `[]` The token program
+    /// 8. `[signer, writable]` The program Id
+    SwapTokens {
+        /// the amount the taker expects to be paid in the other token, as a u64 because that's the max possible supply of a token
+        amountA: u64,
+        // amountB, u64,
+        // amountC: u64
+    },
+
+     // MY FUNCTION -------------------------------------------------------
+    /// Initialize swap contract and PDA
+    ///
+    ///
+    /// Accounts expected:
+    ///
+    /// 0. `[signer]` The account of the person initializing contract and should have tokens associated with account
+    /// 1. `[writable]` Initializer token A temp account - to be transfered to PDA
+    /// 2. `[writable]` Initializer token B temp account - to be transfered to PDA
+    /// 3. `[writable]` Initializer token C temp account - to be transfered to PDA
+    /// 4. `[writable]` The contract, it will hold all necessary info about the trade.
+    /// 5. `[]` The rent sysvar
+    /// 6. `[]` The token program
+    InitSwapContract {},
 }
 
 impl EscrowInstruction {
@@ -48,6 +85,13 @@ impl EscrowInstruction {
             },
             1 => Self::Exchange {
                 amount: Self::unpack_amount(rest)?
+            },
+            2 => Self::SwapTokens {
+                amountA: Self::unpack_amount(rest)?
+                // amountB: Self::unpack_amount(rest)?
+                // amountC: Self::unpack_amount(rest)?
+            },
+            3 => Self::InitSwapContract {
             },
             _ => return Err(InvalidInstruction.into()),
         })

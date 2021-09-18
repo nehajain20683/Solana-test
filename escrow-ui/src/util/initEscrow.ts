@@ -3,7 +3,7 @@ import { Account, Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Tran
 import BN from "bn.js";
 import { ESCROW_ACCOUNT_DATA_LAYOUT, EscrowLayout } from "./layout";
 
-const connection = new Connection("http://localhost:8899", 'singleGossip');
+const connection = new Connection("https://api.devnet.solana.com", 'singleGossip');
 
 export const initEscrow = async (
     privateKeyByteArray: string,
