@@ -169,11 +169,13 @@ export const initSwapCont = async (
     transferXTokensCToTempAccIx,
     initSwapTokenContIx
   );
-  await connection.sendTransaction(
+  const res = await connection.sendTransaction(
     tx,
     [initializerAccount, tempTokenAAccount, tempTokenBAccount, tempTokenCAccount, swapTokenAccount],
     { skipPreflight: false, preflightCommitment: "singleGossip" }
   );
 
-  return {  };
+  return { 
+    response: res
+   };
 };

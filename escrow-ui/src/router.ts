@@ -2,9 +2,10 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 const Alice = () => import("./Alice.vue")
 const Bob = () => import("./Bob.vue")
-const Contract = () => import("./ContractInit.vue")
-const Transfer = () => import("./TransferToken.vue")
+const Contract = () => import("./InitSwapContract.vue")
+// const Transfer = () => import("./TransferToken.vue")
 const Swap = () => import("./ContractSwap.vue")
+const AddToken = () => import("./AddTokenToContract.vue")
 
 export default createRouter({
     history: createWebHashHistory('/'),
@@ -20,19 +21,9 @@ export default createRouter({
             component: Contract
         },
         {
-            name: "Transfer Token",
-            path: "/transfer",
-            component: Transfer
-        },
-        {
-            name: "Alice",
-            path: "/alice",
-            component: Alice
-        },
-        {
-            name: "Bob",
-            path: "/bob",
-            component: Bob
+            name: "Add token to contract",
+            path: '/add-token',
+            component: AddToken
         }
     ]
 })

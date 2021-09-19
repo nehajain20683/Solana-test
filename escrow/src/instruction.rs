@@ -4,39 +4,7 @@ use std::convert::TryInto;
 use crate::error::EscrowError::InvalidInstruction;
 
 pub enum EscrowInstruction {
-    /// Starts the trade by creating and populating an escrow account and transferring ownership of the given temp token account to the PDA
-    ///
-    ///
-    /// Accounts expected:
-    ///
-    /// 0. `[signer]` The account of the person initializing the escrow
-    /// 1. `[writable]` Temporary token account that should be created prior to this instruction and owned by the initializer
-    /// 2. `[]` The initializer's token account for the token they will receive should the trade go through
-    /// 3. `[writable]` The escrow account, it will hold all necessary info about the trade.
-    /// 4. `[]` The rent sysvar
-    /// 5. `[]` The token program
-    InitEscrow { amount: u64 },
-
-    /// Accepts a trade
-    ///
-    ///
-    /// Accounts expected:
-    ///
-    /// 0. `[signer]` The account of the person taking the trade
-    /// 1. `[writable]` The taker's token account for the token they send
-    /// 2. `[writable]` The taker's token account for the token they will receive should the trade go through
-    /// 3. `[writable]` The PDA's temp token account to get tokens from and eventually close
-    /// 4. `[writable]` The initializer's main account to send their rent fees to
-    /// 5. `[writable]` The initializer's token account that will receive tokens
-    /// 6. `[writable]` The escrow account holding the escrow info
-    /// 7. `[]` The token program
-    /// 8. `[]` The PDA account
-    Exchange {
-        /// the amount the taker expects to be paid in the other token, as a u64 because that's the max possible supply of a token
-        amount: u64,
-    },
-
-    // MY FUNCTION -------------------------------------------------------
+        // MY FUNCTION -------------------------------------------------------
     /// Accepts a trade
     ///
     ///
@@ -44,18 +12,25 @@ pub enum EscrowInstruction {
     ///
     /// 0. `[signer]` The account of the person taking the trade
     /// 1. `[writable]` The taker's token A account
-    /// 2. `[writable]` The taker's token B account -- no for test
-    /// 3. `[writable]` The taker's token C account -- no for test
-    /// 4. `[writable]` Contract token A account (probably pool)
-    /// 4. `[writable]` Contract token B account (probably pool) -- no for test
-    /// 4. `[writable]` Contract token C account (probably pool) -- no for test
-    /// 7. `[]` The token program
-    /// 8. `[signer, writable]` The program Id
+    /// 2. `[writable]` The taker's token B account
+    /// 3. `[writable]` The taker's token C account
+    /// 4. `[writable]` The taker's token D account
+    /// 5. `[writable]` The taker's token E account
+    /// 6. `[writable]` Contract PDA token A account (probably pool)
+    /// 7. `[writable]` Contract PDA token B account (probably pool)
+    /// 8. `[writable]` Contract PDA token C account (probably pool)
+    /// 9. `[writable]` Contract PDA token D account (probably pool)
+    /// 10. `[writable]` Contract PDA token E account (probably pool)
+    /// 11. `[writable]` Contract account
+    /// 12. `[]` The token program
+    /// 13. `[]` PDA account
     SwapTokens {
         /// the amount the taker expects to be paid in the other token, as a u64 because that's the max possible supply of a token
         amountA: u64,
-        // amountB, u64,
-        // amountC: u64
+        amountB: u64,
+        amountC: u64,
+        amountD: u64,
+        amountE: u64
     },
 
      // MY FUNCTION -------------------------------------------------------
@@ -72,6 +47,18 @@ pub enum EscrowInstruction {
     /// 5. `[]` The rent sysvar
     /// 6. `[]` The token program
     InitSwapContract {},
+
+    // MY FUNCTION -------------------------------------------------------
+    /// Add token to contract PDA
+    ///
+    ///
+    /// Accounts expected:
+    ///
+    /// 0. `[signer]` The account of the person initializing contract and should have tokens associated with account
+    /// 1. `[writable]` Initializer token temp account - to be transfered to PDA
+    /// 2. `[]` The rent sysvar
+    /// 3. `[]` The token program
+    AddToken {},
 }
 
 impl EscrowInstruction {
@@ -80,19 +67,15 @@ impl EscrowInstruction {
         let (tag, rest) = input.split_first().ok_or(InvalidInstruction)?;
 
         Ok(match tag {
-            0 => Self::InitEscrow {
-                amount: Self::unpack_amount(rest)?,
-            },
-            1 => Self::Exchange {
-                amount: Self::unpack_amount(rest)?
-            },
             2 => Self::SwapTokens {
-                amountA: Self::unpack_amount(rest)?
-                // amountB: Self::unpack_amount(rest)?
-                // amountC: Self::unpack_amount(rest)?
+                amountA: Self::unpack_amount(rest)?,
+                amountB: Self::unpack_amount_2(rest)?,
+                amountC: Self::unpack_amount_3(rest)?,
+                amountD: Self::unpack_amount_4(rest)?,
+                amountE: Self::unpack_amount_5(rest)?
             },
-            3 => Self::InitSwapContract {
-            },
+            3 => Self::InitSwapContract {},
+            4 => Self::AddToken {},
             _ => return Err(InvalidInstruction.into()),
         })
     }
@@ -100,6 +83,38 @@ impl EscrowInstruction {
     fn unpack_amount(input: &[u8]) -> Result<u64, ProgramError> {
         let amount = input
             .get(..8)
+            .and_then(|slice| slice.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or(InvalidInstruction)?;
+        Ok(amount)
+    }
+    fn unpack_amount_2(input: &[u8]) -> Result<u64, ProgramError> {
+        let amount = input
+            .get(8..16)
+            .and_then(|slice| slice.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or(InvalidInstruction)?;
+        Ok(amount)
+    }
+    fn unpack_amount_3(input: &[u8]) -> Result<u64, ProgramError> {
+        let amount = input
+            .get(16..24)
+            .and_then(|slice| slice.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or(InvalidInstruction)?;
+        Ok(amount)
+    }
+    fn unpack_amount_4(input: &[u8]) -> Result<u64, ProgramError> {
+        let amount = input
+            .get(24..32)
+            .and_then(|slice| slice.try_into().ok())
+            .map(u64::from_le_bytes)
+            .ok_or(InvalidInstruction)?;
+        Ok(amount)
+    }
+    fn unpack_amount_5(input: &[u8]) -> Result<u64, ProgramError> {
+        let amount = input
+            .get(32..)
             .and_then(|slice| slice.try_into().ok())
             .map(u64::from_le_bytes)
             .ok_or(InvalidInstruction)?;

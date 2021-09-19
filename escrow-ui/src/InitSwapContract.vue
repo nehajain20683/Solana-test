@@ -54,7 +54,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive } from 'vue'
-import { initContract } from './util/initContract'
+import { initSwapCont } from './util/initSwapContract'
 
 interface ContractState {
   contractKey: null | string
@@ -85,15 +85,8 @@ export default defineComponent({
 
     const onContractInit = async () => {
       try {
-        const {
-          contractTokenB,
-          contractTokenA,
-          contractTokenC,
-        } = await initContract(formState.programId)
-        contractState.contractKey = formState.programId
-        contractState.tokenAOfContract = contractTokenA
-        contractState.tokenBOfContract = contractTokenB
-        contractState.tokenCOfContract = contractTokenC
+      await initSwapCont()
+      alert("Contract init")
       } catch (err) {
         console.log("ERROR", err)
         alert(err.message)
